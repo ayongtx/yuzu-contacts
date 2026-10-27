@@ -4,6 +4,11 @@ name: Build Unsigned IPA
 on:
   push:
     branches: [ main, master ]
+    # 只改文档或工具脚本时不浪费一次编译
+    paths-ignore:
+      - '**.md'
+      - 'tools/**'
+      - '.gitignore'
   workflow_dispatch:
 
 jobs:
