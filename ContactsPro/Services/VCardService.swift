@@ -316,7 +316,8 @@ enum SystemContactsImporter {
 
                         p.addresses = cn.postalAddresses.map { item in
                             let a = item.value
-                            let text = [a.province, a.city, a.street, a.postalCode]
+                            // CNPostalAddress 的省/州字段是 state（没有 province）
+                            let text = [a.state, a.city, a.subLocality, a.street, a.postalCode]
                                 .filter { !$0.isEmpty }
                                 .joined(separator: " ")
                             return AddressEntry(label: cnLabel(item.label), text: text)
