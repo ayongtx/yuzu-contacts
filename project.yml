@@ -16,6 +16,12 @@ settings:
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
     ENABLE_USER_SCRIPT_SANDBOXING: NO
     SWIFT_EMIT_LOC_STRINGS: YES
+    # 关闭 chained fixups，改用传统 dyld 绑定信息。
+    # 原因：部分第三方自签工具（含爱思助手内置签名引擎）对 LC_DYLD_CHAINED_FIXUPS 支持不完整，
+    # 重签时会报「签名失败」。旧式绑定信息兼容所有签名器。
+    OTHER_LDFLAGS:
+      - "$(inherited)"
+      - "-Wl,-no_fixup_chains"
 
 targets:
   ContactsPro:
