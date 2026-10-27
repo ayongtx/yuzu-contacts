@@ -48,24 +48,39 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build 2>&1 | tee build.log | tail -30
 
-      - name: 打包成 IPA
+      - name: 打包成 IPA（两个版本）
         run: |
+          set -euo pipefail
           APP_PATH=$(find build/Build/Products -maxdepth 2 -name "ContactsPro.app" -type d | head -1)
           echo "找到 App：$APP_PATH"
           test -n "$APP_PATH" || { echo "没找到 .app，编译可能失败了"; exit 1; }
+
           rm -rf Payload
           mkdir -p Payload
           cp -R "$APP_PATH" Payload/
+          # 清掉可能残留的扩展属性，避免签名/打包被污染
+          xattr -cr Payload/ContactsPro.app || true
+          rm -rf Payload/ContactsPro.app/_CodeSignature
+
+          # 版本 A：完全未签名（原样，供 Sideloadly / 爱思助手等自行签名）
           zip -qry ContactsPro-unsigned.ipa Payload
-          ls -lh ContactsPro-unsigned.ipa
-          # 顺便把编译摘要打出来，方便排查
+
+          # 版本 B：ad-hoc 已签名（结构上等同于一个"正常已签名 App"，
+          # 爱思助手/AltStore 这类"重签"流程对它兼容性更好）
+          codesign --force --sign - --timestamp=none Payload/ContactsPro.app
+          codesign -dvv Payload/ContactsPro.app 2>&1 | head -5 || true
+          zip -qry ContactsPro-adhoc.ipa Payload
+
+          ls -lh ContactsPro-unsigned.ipa ContactsPro-adhoc.ipa
           echo "--- 构建告警统计 ---"
           grep -c "warning:" build.log || true
 
       - name: 上传 IPA 产物
         uses: actions/upload-artifact@v4
         with:
-          name: ContactsPro-unsigned-ipa
-          path: ContactsPro-unsigned.ipa
+          name: ContactsPro-ipa
+          path: |
+            ContactsPro-unsigned.ipa
+            ContactsPro-adhoc.ipa
           retention-days: 90
           if-no-files-found: error
